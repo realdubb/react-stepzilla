@@ -249,6 +249,10 @@ export default class StepZilla extends Component {
       else if (Object.keys(this.refs).length == 0 || typeof this.refs.activeComponent.isValidated == 'undefined') {
         // if its a form component, it should have implemeted a public isValidated class (also pure componenets wont even have refs - i.e. a empty object). If not then continue
         proceed = true;
+        const { activeComponent } = this.refs;
+        if (typeof activeComponent !== 'undefined' && typeof activeComponent.wrappedInstance !== 'undefined') {
+          proceed = this.refs.activeComponent.wrappedInstance.isValidated();
+        }
       }
       else {
         // user is moving forward in steps, invoke validation as its available
