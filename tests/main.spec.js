@@ -1,9 +1,11 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import StepZilla from '../src/main';
 import sinon from 'sinon'
 const shallow = enzyme.shallow;
 
-const makeFakeSteps = (num, makePure) => {
+const isValidatedSpy = sinon.spy();
+const makeFakeSteps = (num, makePure, makeRedux) => {
   let steps = [];
 
   for (let i=0; i < num; i++) {
@@ -20,8 +22,19 @@ const makeFakeSteps = (num, makePure) => {
           </div>
         )
       }
-    }
-    else {
+    } else if (makeRedux) {
+      // make a "dirty" react component
+      const comp = new React.Component();
+      comp.isValidated = () => isValidatedSpy;
+      comp.render = () => {
+        return (
+          <div>
+            <h1>Step {i + 1}</h1>
+          </div>
+        )
+      }
+      newComp = connect(comp);
+    } else {
       // make a "pure" component
       newComp = (props) => (
         <div>
@@ -39,8 +52,8 @@ const makeFakeSteps = (num, makePure) => {
   return steps;
 };
 
-function setup(stepCount = 1, config = {}, makePure = false) {
-  const steps = makeFakeSteps(stepCount, makePure);
+function setup(stepCount = 1, config = {}, makePure = false, makeRedux = false) {
+  const steps = makeFakeSteps(stepCount, makePure, makeRedux);
 
   const props = {
     ...config,
@@ -83,6 +96,42 @@ describe('StepZilla', () => {
     });
   });
 
+  describe('Component render (using Redux) dontValidate default', () => {
+    const { enzymeWrapper } = setup(3, { nextTextOnFinalActionStep: 'Save' }, false, true);
+
+    it('should render "Next" when we jump to the final action step (2nd step in this case)', (done) => {
+      enzymeWrapper.find('.footer-buttons #next-button').simulate('click');
+      debugger;
+      // click above is promise driven so it's async, setTimeout is probabaly not the best way to do this but it will do for now
+      setTimeout(() => {
+        expect(enzymeWrapper.find('.footer-buttons #next-button').text()).to.be.equal('Next');
+
+        done();
+      }, 10);
+    });
+
+    it('should render correct number of steps', () => {
+      expect(enzymeWrapper.find('li')).to.have.length(3);
+    });
+  });
+
+  describe('component render (using Redux Components) dontValidate true', () => {
+    const { enzymeWrapper } = setup(3, { dontValidate: true, nextTextOnFinalActionStep: 'Save' }, false, true);
+
+    it('should render "Save" when we jump to the final action step (2nd step in this case)', (done) => {
+      enzymeWrapper.find('.footer-buttons #next-button').simulate('click');
+      // click above is promise driven so it's async, setTimeout is probabaly not the best way to do this but it will do for now
+      setTimeout(() => {
+        expect(enzymeWrapper.find('.footer-buttons #next-button').text()).to.be.equal('Save');
+
+        done();
+      }, 10);
+    });
+
+    it('should render correct number of steps', () => {
+      expect(enzymeWrapper.find('li')).to.have.length(3);
+    });
+  });
 
   describe('default props based render', () => {
     describe('showSteps: true use case', () => {
